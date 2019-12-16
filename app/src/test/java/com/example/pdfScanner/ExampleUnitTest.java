@@ -1,4 +1,4 @@
-package com.example.pdfScanner;
+package com.example.pdfscanner;
 
 import org.junit.Test;
 

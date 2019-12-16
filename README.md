@@ -1,3 +1,0 @@
-# pdfscaner
-kakakaka
-met vl

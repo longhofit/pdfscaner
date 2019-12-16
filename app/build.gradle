@@ -4,7 +4,7 @@ android {
     compileSdkVersion 29
     buildToolsVersion "29.0.2"
     defaultConfig {
-        applicationId "com.example.pdfScanner"
+        applicationId "com.example.pdfscanner"
         minSdkVersion 24
         targetSdkVersion 29
         versionCode 1
@@ -26,6 +26,4 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
-
-    implementation 'com.rmtheis:tess-two:6.3.0'
 }

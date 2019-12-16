@@ -1,4 +1,4 @@
-package com.example.pdfScanner;
+package com.example.pdfscanner;
 
 import android.content.Context;
 
@@ -22,6 +22,6 @@ public class ExampleInstrumentedTest {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        assertEquals("com.example.pdfScanner", appContext.getPackageName());
+        assertEquals("com.example.pdfscanner", appContext.getPackageName());
     }
 }

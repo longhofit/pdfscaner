@@ -7,7 +7,7 @@
     tools:context=".MainActivity">
 
     <ImageButton
-        android:id="@+id/imageButton"
+        android:id="@+id/btnCamera"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="30dp"
@@ -19,6 +19,7 @@
         app:layout_constraintStart_toStartOf="parent"></ImageButton>
 
     <ImageButton
+        android:id="@+id/btnGallery"
         android:layout_marginLeft="10dp"
         android:layout_marginBottom="30dp"
         android:layout_width="wrap_content"
@@ -29,5 +30,6 @@
         android:src="@drawable/ic_gallery"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_bias="0.426"
-        app:layout_constraintStart_toEndOf="@+id/imageButton"></ImageButton>
+        app:layout_constraintStart_toEndOf="@+id/btnCamera"></ImageButton>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

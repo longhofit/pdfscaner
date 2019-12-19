@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "760900257155",
+    "firebase_url": "https://pdfscanner-b72b6.firebaseio.com",
+    "project_id": "pdfscanner-b72b6",
+    "storage_bucket": "pdfscanner-b72b6.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:760900257155:android:772cbc27e029569eede2b6",
+        "android_client_info": {
+          "package_name": "com.example.pdfscanner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "760900257155-qvpca3e122p5vs9p9r869vsn28t1uotf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.pdfscanner",
+            "certificate_hash": "ca9c351a63571998b9c834cfb890bf17eca6c0ed"
+          }
+        },
+        {
+          "client_id": "760900257155-bu8nftd8d64qdjehmc6qcs84muo4etpj.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIiXCqMrxAzIqGT8xJmNV_NtnuiVO26qI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "760900257155-bu8nftd8d64qdjehmc6qcs84muo4etpj.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

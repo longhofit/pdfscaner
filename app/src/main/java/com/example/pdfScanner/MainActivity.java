@@ -1,4 +1,4 @@
-package com.example.pdfscanner;
+package com.example.pdfScanner;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -15,7 +15,6 @@ import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.media.Image;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -33,7 +32,13 @@ import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
+import com.itextpdf.text.BadElementException;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.pdf.PdfWriter;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -41,6 +46,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -50,6 +56,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private ImageButton btnCamera, btnGallery;
 
     public static String currentPhotoPath;
+
+    public static String currentFilePath;
 
     private Bitmap currentBitmapImage = null;
 
@@ -135,6 +143,34 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return image;
     }
 
+    private String createPdfFile() throws IOException {
+        Document document = new Document();
+        String directoryPath = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString();
+        //String directoryPath = android.os.Environment.getExternalStorageDirectory().toString();
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String FileDir = directoryPath+ "/pdf_" + timeStamp + ".pdf";
+        try {
+            PdfWriter.getInstance(document, new FileOutputStream(FileDir)); //  Change pdf's name.
+            document.open();
+            com.itextpdf.text.Image image;
+
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                image = Image.getInstance(stream.toByteArray());
+            float scaler = ((document.getPageSize().getWidth() - document.leftMargin()
+                    - document.rightMargin() - 0) / image.getWidth()) * 100; // 0 means you have no indentation. If you have any, change it.
+            image.scalePercent(scaler);
+            image.setAlignment(com.itextpdf.text.Image.ALIGN_CENTER | com.itextpdf.text.Image.ALIGN_TOP);
+            document.add(image);
+        } catch (BadElementException e) {
+            e.printStackTrace();
+        } catch (DocumentException e) {
+            e.printStackTrace();
+        }
+        document.close();
+        return FileDir;
+    }
+
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
@@ -168,6 +204,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
                 File f = new File(currentPhotoPath);
+
                 currentUri = Uri.fromFile(f);
                 /*try {
                     performCrop(currentUri);
@@ -184,9 +221,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }*/
 
                 currentBitmapImage = readBitmapAndScale(currentPhotoPath);
-                runTextRecognition(currentBitmapImage);
-                //OCR
-
+                try {
+                    currentFilePath = createPdfFile();
+                    Intent intent = new Intent(MainActivity.this, PdfViewActivity.class);
+                    intent.putExtra("filePath", currentFilePath);
+                    String filename = "bitmap.png";
+                    FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
+                    currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    //Cleanup
+                    stream.close();
+                    currentBitmapImage.recycle();
+                    intent.putExtra("bitMap",  filename);
+                    startActivity(intent);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                //runTextRecognition(currentBitmapImage);
 
             } else if (resultCode == RESULT_CANCELED) {
                 Toast.makeText(this, "Action canceled", Toast.LENGTH_LONG).show();
@@ -200,13 +250,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 try {
                     final Uri imageUri = data.getData();
                     final InputStream imageStream = getContentResolver().openInputStream(imageUri);
-
                     currentBitmapImage = BitmapFactory.decodeStream(imageStream);
+                    Intent intent = new Intent(MainActivity.this, PdfViewActivity.class);
+                    intent.putExtra("filePath", currentFilePath);
+                    String filename = "bitmap.png";
+                    FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
+                    currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    //Cleanup
+                    stream.close();
+                    currentBitmapImage.recycle();
+                    intent.putExtra("bitMap",  filename);
+                    startActivity(intent);
                     //scaleDown(currentBitmapImage,3000000,true);
-                    runTextRecognition(currentBitmapImage);
+                    //runTextRecognition(currentBitmapImage);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                     Toast.makeText(this, "Something went wrong", Toast.LENGTH_LONG).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
 
             }else {
@@ -224,37 +285,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         return BitmapFactory.decodeFile(path,options);
     }
 
-    private void runTextRecognition(Bitmap mSelectedImage) {
-        FirebaseVisionImage image = FirebaseVisionImage.fromBitmap(mSelectedImage);
-        FirebaseVisionTextDetector detector = FirebaseVision.getInstance().getVisionTextDetector();
-        detector.detectInImage(image).addOnSuccessListener(
-                new OnSuccessListener<FirebaseVisionText>() {
-                    @Override
-                    public void onSuccess(FirebaseVisionText texts) {
-                        processTextRecognitionResult(texts);
-                    }
-                });
-    }
-    @SuppressLint("SetTextI18n")
-    private void processTextRecognitionResult(FirebaseVisionText texts) {
-        List<FirebaseVisionText.Block> blocks = texts.getBlocks();
-        if (blocks.size() == 0) {
-            TextView resultView = (TextView) findViewById(R.id.result_test);
-            resultView.setText("No text found!");
-            return;
-        }
-        StringBuilder sb = new StringBuilder("");
-        for (int i = 0; i < blocks.size(); i++) {
-            List<FirebaseVisionText.Line> lines = blocks.get(i).getLines();
-            for (int j = 0; j < lines.size(); j++) {
-                List<FirebaseVisionText.Element> elements = lines.get(j).getElements();
-                for (int k = 0; k < elements.size(); k++) sb.append(elements.get(k).getText()).append(" ");
-                sb.append("\n");
-            }
-            sb.append("\n");
-        }
-        TextView resultView = (TextView) findViewById(R.id.result_test);
-        resultView.setText(sb.toString());
-    }
+
 
 }

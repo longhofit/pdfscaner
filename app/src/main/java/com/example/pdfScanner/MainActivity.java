@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.exifinterface.media.ExifInterface;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -15,6 +16,7 @@ import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -37,7 +39,7 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.pdf.PdfWriter;
-
+import com.theartofdev.edmodo.cropper.CropImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,6 +57,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private ImageButton btnCamera, btnGallery;
 
+    private ImageView imgPreview;
+
     public static String currentPhotoPath;
 
     public static String currentFilePath;
@@ -68,7 +72,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final int REQUEST_ID_READ_WRITE_PERMISSION = 99;
     private static final int REQUEST_ID_IMAGE_CAPTURE = 100;
     private static final int RESULT_LOAD_IMG = 101;
-    private static final int PIC_CROP = 1;
+    private static final int CROP_PIC_REQUEST_CODE = 102;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +89,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //Button get photo from gallery
         btnGallery = findViewById(R.id.btnGallery);
         btnGallery.setOnClickListener(this);
+
 
 
 
@@ -109,8 +114,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btnCamera:
             {
                 try{
-                    //Take photo
-                    //onTakePhoto();
                     dispatchTakePictureIntent();
                 } catch (Exception e) {
                     System.out.println("exception camera");
@@ -120,24 +123,37 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             case R.id.btnGallery:
             {
+
                 Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
                 photoPickerIntent.setType("image/*");
                 startActivityForResult(photoPickerIntent, RESULT_LOAD_IMG);
+
             }
         }
     }
 
-    private File createImageFile() throws IOException {
+    private File createImageCroppedFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+
         File image = File.createTempFile(
                 imageFileName,   //prefix
                 ".jpg",          //suffix
                 storageDir       //directory
         );
 
+        // Save a file: path for use with ACTION_VIEW intents
+        currentPhotoPath = image.getAbsolutePath();
+        return image;
+    }
+
+    private File createTempImage() throws IOException {
+        // Create an image file name
+        String imageFileName = "temp.jpg";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = new File(storageDir, imageFileName);
         // Save a file: path for use with ACTION_VIEW intents
         currentPhotoPath = image.getAbsolutePath();
         return image;
@@ -156,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
             currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                image = Image.getInstance(stream.toByteArray());
+            image = Image.getInstance(stream.toByteArray());
             float scaler = ((document.getPageSize().getWidth() - document.leftMargin()
                     - document.rightMargin() - 0) / image.getWidth()) * 100; // 0 means you have no indentation. If you have any, change it.
             image.scalePercent(scaler);
@@ -178,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             // Create the File where the photo should go
             File photoFile = null;
             try {
-                photoFile = createImageFile();
+                photoFile = createTempImage();
             } catch (IOException ex) {
             }
             // Continue only if the File was successfully created
@@ -198,93 +214,92 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         if (requestCode == REQUEST_ID_IMAGE_CAPTURE) {
             if (resultCode == RESULT_OK) {
-                /*Bitmap bp = (Bitmap) data.getExtras().get("data");
-                ImageView test = (ImageView) this.findViewById(R.id.testIMG);
-                test.setImageBitmap(bp);*/
-
 
                 File f = new File(currentPhotoPath);
 
                 currentUri = Uri.fromFile(f);
-                /*try {
-                    performCrop(currentUri);
-                } catch (Exception e){
-                    int a;
-                };*/
-                /*File f = new File(currentPhotoPath);
-                Uri contentUri = Uri.fromFile(f);
 
-                try {
-                    currentBitmapImage = MediaStore.Images.Media.getBitmap(this.getContentResolver(),contentUri);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }*/
-
-                currentBitmapImage = readBitmapAndScale(currentPhotoPath);
-                try {
-                    currentFilePath = createPdfFile();
-                    Intent intent = new Intent(MainActivity.this, PdfViewActivity.class);
-                    intent.putExtra("filePath", currentFilePath);
-                    String filename = "bitmap.png";
-                    FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
-                    currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                    //Cleanup
-                    stream.close();
-                    currentBitmapImage.recycle();
-                    intent.putExtra("bitMap",  filename);
-                    startActivity(intent);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                if (currentUri != null)
+                {
+                    CropImage.activity(currentUri)
+                            .start(this);
                 }
-                //runTextRecognition(currentBitmapImage);
 
-            } else if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(this, "Action canceled", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Action Failed", Toast.LENGTH_LONG).show();
             }
+
+        } else if (resultCode == RESULT_CANCELED) {
+            Toast.makeText(this, "Action canceled", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Action Failed", Toast.LENGTH_LONG).show();
         }
         if (requestCode == RESULT_LOAD_IMG)
         {
             if (resultCode == RESULT_OK) {
                 try {
                     final Uri imageUri = data.getData();
-                    final InputStream imageStream = getContentResolver().openInputStream(imageUri);
-                    currentBitmapImage = BitmapFactory.decodeStream(imageStream);
-                    Intent intent = new Intent(MainActivity.this, PdfViewActivity.class);
-                    intent.putExtra("filePath", currentFilePath);
-                    String filename = "bitmap.png";
-                    FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
-                    currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                    //Cleanup
-                    stream.close();
-                    currentBitmapImage.recycle();
-                    intent.putExtra("bitMap",  filename);
-                    startActivity(intent);
-                    //scaleDown(currentBitmapImage,3000000,true);
-                    //runTextRecognition(currentBitmapImage);
-                } catch (FileNotFoundException e) {
+
+                    currentUri = data.getData();
+
+                    if (currentUri != null)
+                    {
+                        CropImage.activity(currentUri)
+                                .start(this);
+                    }
+                } catch (Exception e) {
                     e.printStackTrace();
                     Toast.makeText(this, "Something went wrong", Toast.LENGTH_LONG).show();
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
-
             }else {
                 Toast.makeText(this, "You haven't picked Image",Toast.LENGTH_LONG).show();
             }
         }
+        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+            if (resultCode == RESULT_OK) {
+                Uri resultUri = result.getUri();
+
+                final InputStream imageStream;
+                try {
+                    imageStream = getContentResolver().openInputStream(resultUri);
+                    currentBitmapImage = BitmapFactory.decodeStream(imageStream);
+
+                    //Save image to application external memory
+                    try
+                    {
+                        File photoFile = null;
+                        photoFile = createImageCroppedFile();
+                        OutputStream stream = null;
+                        stream = new FileOutputStream(photoFile);
+                        currentBitmapImage.compress(Bitmap.CompressFormat.JPEG,100,stream);
+                        stream.close(); }
+                    catch (IOException e) // Catch the exception
+                    {
+                        e.printStackTrace();
+                    }
+
+                    try {
+                        currentFilePath = createPdfFile();
+                        Intent intent = new Intent(MainActivity.this, ScanActivity.class);
+                        intent.putExtra("filePath", currentFilePath);
+                        String filename = "bitmap.png";
+                        FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
+                        currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                        //Cleanup
+                        stream.close();
+                        currentBitmapImage.recycle();
+                        intent.putExtra("bitMap",  filename);
+                        startActivity(intent);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    //runTextRecognition(currentBitmapImage);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+                Exception error = result.getError();
+            }
+        }
     }
-
-    public Bitmap readBitmapAndScale(String path){
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true; //Chỉ đọc thông tin ảnh, không đọc dữ liwwuj
-        BitmapFactory.decodeFile(path,options); //Đọc thông tin ảnh
-        options.inSampleSize = 4; //Scale bitmap xuống 4 lần
-        options.inJustDecodeBounds=false; //Cho phép đọc dữ liệu ảnh ảnh
-        return BitmapFactory.decodeFile(path,options);
-    }
-
-
-
 }

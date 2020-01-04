@@ -1,7 +1,5 @@
 package com.example.pdfScanner;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.Intent;
@@ -12,24 +10,22 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
-
 import java.io.FileInputStream;
 import java.util.List;
 
-public class PdfViewActivity extends AppCompatActivity {
+public class ScanActivity extends AppCompatActivity {
 
     String currentFilePath;
     Bitmap currentBitmapImage;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_pdf_view);
+        setContentView(R.layout.activity_scan);
         ImageView imageView = findViewById(R.id.pdf_view);
         Button button = findViewById(R.id.ocrBtn);
         Intent intent = getIntent();
@@ -64,7 +60,7 @@ public class PdfViewActivity extends AppCompatActivity {
     }
     @SuppressLint("SetTextI18n")
     private void processTextRecognitionResult(FirebaseVisionText texts) {
-        final Dialog dialog = new Dialog(PdfViewActivity.this);
+        final Dialog dialog = new Dialog(ScanActivity.this);
         dialog.setContentView(R.layout.ocr_layout);
         dialog.show();
         TextView resultView = dialog.findViewById(R.id.ocr_view);

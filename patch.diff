@@ -1,0 +1,507 @@
+From 5f42811a7e62a966ee6b66c27813036d196b188e Mon Sep 17 00:00:00 2001
+From: Le Long Ho <lelongho998@gmail.com>
+Date: Sat, 4 Jan 2020 17:11:16 +0700
+Subject: [PATCH] Revert "Revert "Revert "crop img"""
+
+This reverts commit 74fad37dd9a73241895e6378769195a0b978c4d6.
+---
+ app/build.gradle                              |   3 -
+ app/src/main/AndroidManifest.xml              |   6 +-
+ .../com/example/pdfScanner/MainActivity.java  | 159 ++++++++----------
+ ...ScanActivity.java => PdfViewActivity.java} |  10 +-
+ app/src/main/res/layout/activity_main.xml     |  85 +++++-----
+ ...ctivity_scan.xml => activity_pdf_view.xml} |   2 +-
+ 6 files changed, 124 insertions(+), 141 deletions(-)
+ rename app/src/main/java/com/example/pdfScanner/{ScanActivity.java => PdfViewActivity.java} (94%)
+ rename app/src/main/res/layout/{activity_scan.xml => activity_pdf_view.xml} (94%)
+
+diff --git a/app/build.gradle b/app/build.gradle
+index 1596a40..5706195 100644
+--- a/app/build.gradle
++++ b/app/build.gradle
+@@ -21,9 +21,6 @@ android {
+ }
+ 
+ dependencies {
+-    implementation 'com.itextpdf:itextg:5.5.10'
+-    api 'com.theartofdev.edmodo:android-image-cropper:2.8.+'
+-    implementation 'com.soundcloud.android:android-crop:1.0.1@aar'
+     implementation fileTree(dir: 'libs', include: ['*.jar'])
+     implementation 'androidx.appcompat:appcompat:1.1.0'
+     implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+diff --git a/app/src/main/AndroidManifest.xml b/app/src/main/AndroidManifest.xml
+index 13c7060..e9cb8a4 100644
+--- a/app/src/main/AndroidManifest.xml
++++ b/app/src/main/AndroidManifest.xml
+@@ -8,12 +8,13 @@
+ 
+     <application
+         android:allowBackup="true"
++        android:debuggable="true"
+         android:icon="@mipmap/ic_launcher"
+         android:label="@string/app_name"
+         android:roundIcon="@mipmap/ic_launcher_round"
+         android:supportsRtl="true"
+         android:theme="@style/AppTheme">
+-        <activity android:name=".ScanActivity"></activity>
++        <activity android:name=".PdfViewActivity"></activity>
+         <activity android:name=".MainActivity">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN" />
+@@ -21,9 +22,6 @@
+                 <category android:name="android.intent.category.LAUNCHER" />
+             </intent-filter>
+         </activity>
+-        <activity
+-            android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
+-            android:theme="@style/Base.Theme.AppCompat" />
+ 
+         <provider
+             android:name="androidx.core.content.FileProvider"
+diff --git a/app/src/main/java/com/example/pdfScanner/MainActivity.java b/app/src/main/java/com/example/pdfScanner/MainActivity.java
+index 6187d2e..8009b8c 100644
+--- a/app/src/main/java/com/example/pdfScanner/MainActivity.java
++++ b/app/src/main/java/com/example/pdfScanner/MainActivity.java
+@@ -4,7 +4,6 @@ import androidx.appcompat.app.AppCompatActivity;
+ import androidx.core.app.ActivityCompat;
+ import androidx.core.content.ContextCompat;
+ import androidx.core.content.FileProvider;
+-import androidx.exifinterface.media.ExifInterface;
+ 
+ import android.Manifest;
+ import android.annotation.SuppressLint;
+@@ -16,7 +15,6 @@ import android.content.pm.PackageManager;
+ import android.content.res.AssetManager;
+ import android.graphics.Bitmap;
+ import android.graphics.BitmapFactory;
+-import android.graphics.Matrix;
+ import android.net.Uri;
+ import android.os.Bundle;
+ import android.os.Environment;
+@@ -39,7 +37,7 @@ import com.itextpdf.text.Document;
+ import com.itextpdf.text.DocumentException;
+ import com.itextpdf.text.Image;
+ import com.itextpdf.text.pdf.PdfWriter;
+-import com.theartofdev.edmodo.cropper.CropImage;
++
+ import java.io.ByteArrayOutputStream;
+ import java.io.File;
+ import java.io.FileInputStream;
+@@ -57,8 +55,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+ 
+     private ImageButton btnCamera, btnGallery;
+ 
+-    private ImageView imgPreview;
+-
+     public static String currentPhotoPath;
+ 
+     public static String currentFilePath;
+@@ -72,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+     private static final int REQUEST_ID_READ_WRITE_PERMISSION = 99;
+     private static final int REQUEST_ID_IMAGE_CAPTURE = 100;
+     private static final int RESULT_LOAD_IMG = 101;
+-    private static final int CROP_PIC_REQUEST_CODE = 102;
++    private static final int PIC_CROP = 1;
+ 
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+@@ -92,7 +88,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+ 
+ 
+ 
+-
+     }
+ 
+     protected void makeRequest() {
+@@ -114,6 +109,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+             case R.id.btnCamera:
+             {
+                 try{
++                    //Take photo
++                    //onTakePhoto();
+                     dispatchTakePictureIntent();
+                 } catch (Exception e) {
+                     System.out.println("exception camera");
+@@ -123,21 +120,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+ 
+             case R.id.btnGallery:
+             {
+-
+                 Intent photoPickerIntent = new Intent(Intent.ACTION_PICK);
+                 photoPickerIntent.setType("image/*");
+                 startActivityForResult(photoPickerIntent, RESULT_LOAD_IMG);
+-
+             }
+         }
+     }
+ 
+-    private File createImageCroppedFile() throws IOException {
++    private File createImageFile() throws IOException {
+         // Create an image file name
+         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+         String imageFileName = "JPEG_" + timeStamp + "_";
+         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+-
+         File image = File.createTempFile(
+                 imageFileName,   //prefix
+                 ".jpg",          //suffix
+@@ -149,16 +143,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+         return image;
+     }
+ 
+-    private File createTempImage() throws IOException {
+-        // Create an image file name
+-        String imageFileName = "temp.jpg";
+-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+-        File image = new File(storageDir, imageFileName);
+-        // Save a file: path for use with ACTION_VIEW intents
+-        currentPhotoPath = image.getAbsolutePath();
+-        return image;
+-    }
+-
+     private String createPdfFile() throws IOException {
+         Document document = new Document();
+         String directoryPath = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS).toString();
+@@ -172,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+ 
+             ByteArrayOutputStream stream = new ByteArrayOutputStream();
+             currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
+-            image = Image.getInstance(stream.toByteArray());
++                image = Image.getInstance(stream.toByteArray());
+             float scaler = ((document.getPageSize().getWidth() - document.leftMargin()
+                     - document.rightMargin() - 0) / image.getWidth()) * 100; // 0 means you have no indentation. If you have any, change it.
+             image.scalePercent(scaler);
+@@ -194,7 +178,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+             // Create the File where the photo should go
+             File photoFile = null;
+             try {
+-                photoFile = createTempImage();
++                photoFile = createImageFile();
+             } catch (IOException ex) {
+             }
+             // Continue only if the File was successfully created
+@@ -214,92 +198,93 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+ 
+         if (requestCode == REQUEST_ID_IMAGE_CAPTURE) {
+             if (resultCode == RESULT_OK) {
++                /*Bitmap bp = (Bitmap) data.getExtras().get("data");
++                ImageView test = (ImageView) this.findViewById(R.id.testIMG);
++                test.setImageBitmap(bp);*/
++
+ 
+                 File f = new File(currentPhotoPath);
+ 
+                 currentUri = Uri.fromFile(f);
++                /*try {
++                    performCrop(currentUri);
++                } catch (Exception e){
++                    int a;
++                };*/
++                /*File f = new File(currentPhotoPath);
++                Uri contentUri = Uri.fromFile(f);
++
++                try {
++                    currentBitmapImage = MediaStore.Images.Media.getBitmap(this.getContentResolver(),contentUri);
++                } catch (IOException e) {
++                    e.printStackTrace();
++                }*/
+ 
+-                if (currentUri != null)
+-                {
+-                    CropImage.activity(currentUri)
+-                            .start(this);
++                currentBitmapImage = readBitmapAndScale(currentPhotoPath);
++                try {
++                    currentFilePath = createPdfFile();
++                    Intent intent = new Intent(MainActivity.this, PdfViewActivity.class);
++                    intent.putExtra("filePath", currentFilePath);
++                    String filename = "bitmap.png";
++                    FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
++                    currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
++                    //Cleanup
++                    stream.close();
++                    currentBitmapImage.recycle();
++                    intent.putExtra("bitMap",  filename);
++                    startActivity(intent);
++                } catch (IOException e) {
++                    e.printStackTrace();
+                 }
++                //runTextRecognition(currentBitmapImage);
+ 
++            } else if (resultCode == RESULT_CANCELED) {
++                Toast.makeText(this, "Action canceled", Toast.LENGTH_LONG).show();
++            } else {
++                Toast.makeText(this, "Action Failed", Toast.LENGTH_LONG).show();
+             }
+-
+-        } else if (resultCode == RESULT_CANCELED) {
+-            Toast.makeText(this, "Action canceled", Toast.LENGTH_LONG).show();
+-        } else {
+-            Toast.makeText(this, "Action Failed", Toast.LENGTH_LONG).show();
+         }
+         if (requestCode == RESULT_LOAD_IMG)
+         {
+             if (resultCode == RESULT_OK) {
+                 try {
+                     final Uri imageUri = data.getData();
+-
+-                    currentUri = data.getData();
+-
+-                    if (currentUri != null)
+-                    {
+-                        CropImage.activity(currentUri)
+-                                .start(this);
+-                    }
+-                } catch (Exception e) {
++                    final InputStream imageStream = getContentResolver().openInputStream(imageUri);
++                    currentBitmapImage = BitmapFactory.decodeStream(imageStream);
++                    Intent intent = new Intent(MainActivity.this, PdfViewActivity.class);
++                    intent.putExtra("filePath", currentFilePath);
++                    String filename = "bitmap.png";
++                    FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
++                    currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
++                    //Cleanup
++                    stream.close();
++                    currentBitmapImage.recycle();
++                    intent.putExtra("bitMap",  filename);
++                    startActivity(intent);
++                    //scaleDown(currentBitmapImage,3000000,true);
++                    //runTextRecognition(currentBitmapImage);
++                } catch (FileNotFoundException e) {
+                     e.printStackTrace();
+                     Toast.makeText(this, "Something went wrong", Toast.LENGTH_LONG).show();
++                } catch (IOException e) {
++                    e.printStackTrace();
+                 }
++
+             }else {
+                 Toast.makeText(this, "You haven't picked Image",Toast.LENGTH_LONG).show();
+             }
+         }
+-        if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+-            CropImage.ActivityResult result = CropImage.getActivityResult(data);
+-            if (resultCode == RESULT_OK) {
+-                Uri resultUri = result.getUri();
++    }
++
++    public Bitmap readBitmapAndScale(String path){
++        BitmapFactory.Options options = new BitmapFactory.Options();
++        options.inJustDecodeBounds = true; //Chỉ đọc thông tin ảnh, không đọc dữ liwwuj
++        BitmapFactory.decodeFile(path,options); //Đọc thông tin ảnh
++        options.inSampleSize = 4; //Scale bitmap xuống 4 lần
++        options.inJustDecodeBounds=false; //Cho phép đọc dữ liệu ảnh ảnh
++        return BitmapFactory.decodeFile(path,options);
++    }
+ 
+-                final InputStream imageStream;
+-                try {
+-                    imageStream = getContentResolver().openInputStream(resultUri);
+-                    currentBitmapImage = BitmapFactory.decodeStream(imageStream);
+ 
+-                    //Save image to application external memory
+-                    try
+-                    {
+-                        File photoFile = null;
+-                        photoFile = createImageCroppedFile();
+-                        OutputStream stream = null;
+-                        stream = new FileOutputStream(photoFile);
+-                        currentBitmapImage.compress(Bitmap.CompressFormat.JPEG,100,stream);
+-                        stream.close(); }
+-                    catch (IOException e) // Catch the exception
+-                    {
+-                        e.printStackTrace();
+-                    }
+-
+-                    try {
+-                        currentFilePath = createPdfFile();
+-                        Intent intent = new Intent(MainActivity.this, ScanActivity.class);
+-                        intent.putExtra("filePath", currentFilePath);
+-                        String filename = "bitmap.png";
+-                        FileOutputStream stream = this.openFileOutput(filename, Context.MODE_PRIVATE);
+-                        currentBitmapImage.compress(Bitmap.CompressFormat.PNG, 100, stream);
+-                        //Cleanup
+-                        stream.close();
+-                        currentBitmapImage.recycle();
+-                        intent.putExtra("bitMap",  filename);
+-                        startActivity(intent);
+-                    } catch (IOException e) {
+-                        e.printStackTrace();
+-                    }
+ 
+-                    //runTextRecognition(currentBitmapImage);
+-                } catch (FileNotFoundException e) {
+-                    e.printStackTrace();
+-                }
+-            } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+-                Exception error = result.getError();
+-            }
+-        }
+-    }
+ }
+diff --git a/app/src/main/java/com/example/pdfScanner/ScanActivity.java b/app/src/main/java/com/example/pdfScanner/PdfViewActivity.java
+similarity index 94%
+rename from app/src/main/java/com/example/pdfScanner/ScanActivity.java
+rename to app/src/main/java/com/example/pdfScanner/PdfViewActivity.java
+index 694e7f2..0c0a8ef 100644
+--- a/app/src/main/java/com/example/pdfScanner/ScanActivity.java
++++ b/app/src/main/java/com/example/pdfScanner/PdfViewActivity.java
+@@ -1,5 +1,7 @@
+ package com.example.pdfScanner;
++
+ import androidx.appcompat.app.AppCompatActivity;
++
+ import android.annotation.SuppressLint;
+ import android.app.Dialog;
+ import android.content.Intent;
+@@ -10,22 +12,24 @@ import android.view.View;
+ import android.widget.Button;
+ import android.widget.ImageView;
+ import android.widget.TextView;
++
+ import com.google.android.gms.tasks.OnSuccessListener;
+ import com.google.firebase.ml.vision.FirebaseVision;
+ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
+ import com.google.firebase.ml.vision.text.FirebaseVisionText;
+ import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
++
+ import java.io.FileInputStream;
+ import java.util.List;
+ 
+-public class ScanActivity extends AppCompatActivity {
++public class PdfViewActivity extends AppCompatActivity {
+ 
+     String currentFilePath;
+     Bitmap currentBitmapImage;
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
+-        setContentView(R.layout.activity_scan);
++        setContentView(R.layout.activity_pdf_view);
+         ImageView imageView = findViewById(R.id.pdf_view);
+         Button button = findViewById(R.id.ocrBtn);
+         Intent intent = getIntent();
+@@ -60,7 +64,7 @@ public class ScanActivity extends AppCompatActivity {
+     }
+     @SuppressLint("SetTextI18n")
+     private void processTextRecognitionResult(FirebaseVisionText texts) {
+-        final Dialog dialog = new Dialog(ScanActivity.this);
++        final Dialog dialog = new Dialog(PdfViewActivity.this);
+         dialog.setContentView(R.layout.ocr_layout);
+         dialog.show();
+         TextView resultView = dialog.findViewById(R.id.ocr_view);
+diff --git a/app/src/main/res/layout/activity_main.xml b/app/src/main/res/layout/activity_main.xml
+index 485a11d..23a9b02 100644
+--- a/app/src/main/res/layout/activity_main.xml
++++ b/app/src/main/res/layout/activity_main.xml
+@@ -6,49 +6,48 @@
+     android:layout_height="match_parent"
+     tools:context=".MainActivity">
+ 
+-    <LinearLayout
+-        android:orientation="vertical"
++    <ImageView
++        android:id="@+id/testIMG"
+         android:layout_width="match_parent"
+-        android:layout_height="match_parent">
+-
+-        <view class="androidx.appcompat.app.AlertController$RecycleListView"
+-            android:layout_width="match_parent"
+-            android:layout_height="0dp"
+-            android:layout_weight="10">
+-
+-        </view>
+-
+-        <androidx.constraintlayout.widget.ConstraintLayout
+-            android:layout_weight="1"
+-            android:orientation="horizontal"
+-            android:layout_width="match_parent"
+-            android:layout_height="wrap_content">
+-
+-            <ImageButton
+-                android:id="@+id/btnCamera"
+-                android:layout_width="wrap_content"
+-                android:layout_height="wrap_content"
+-                android:background="@drawable/round_button"
+-                android:src="@drawable/ic_camera"
+-                app:layout_constraintBottom_toBottomOf="parent"
+-                app:layout_constraintEnd_toEndOf="parent"
+-                app:layout_constraintStart_toStartOf="parent"
+-                app:layout_constraintTop_toTopOf="parent"></ImageButton>
+-
+-            <ImageButton
+-                android:id="@+id/btnGallery"
+-                android:layout_width="wrap_content"
+-                android:layout_height="wrap_content"
+-                android:background="@drawable/round_button"
+-                android:gravity="center"
+-                android:padding="10dp"
+-                android:src="@drawable/ic_gallery"
+-                app:layout_constraintBottom_toBottomOf="parent"
+-                app:layout_constraintStart_toEndOf="@+id/btnCamera"
+-                app:layout_constraintTop_toTopOf="parent"></ImageButton>
+-        </androidx.constraintlayout.widget.ConstraintLayout>
+-    </LinearLayout>
+-
+-
++        android:layout_height="wrap_content"
++        app:layout_constraintEnd_toEndOf="parent"
++        app:layout_constraintStart_toStartOf="parent"
++        app:layout_constraintTop_toTopOf="parent" />
++
++    <TextView
++        android:id="@+id/result_test"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:text="result..."
++        app:layout_constraintBottom_toTopOf="@+id/btnCamera"
++        app:layout_constraintEnd_toEndOf="parent"
++        app:layout_constraintStart_toStartOf="parent"
++        app:layout_constraintTop_toBottomOf="@+id/testIMG" />
++
++    <ImageButton
++        android:id="@+id/btnCamera"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:layout_marginBottom="30dp"
++        android:background="@drawable/round_button"
++        android:gravity="center"
++        android:src="@drawable/ic_camera"
++        app:layout_constraintBottom_toBottomOf="parent"
++        app:layout_constraintEnd_toEndOf="parent"
++        app:layout_constraintStart_toStartOf="parent"></ImageButton>
++
++    <ImageButton
++        android:id="@+id/btnGallery"
++        android:layout_marginLeft="10dp"
++        android:layout_marginBottom="30dp"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:background="@drawable/round_button"
++        android:gravity="center"
++        android:padding="10dp"
++        android:src="@drawable/ic_gallery"
++        app:layout_constraintBottom_toBottomOf="parent"
++        app:layout_constraintHorizontal_bias="0.426"
++        app:layout_constraintStart_toEndOf="@+id/btnCamera"></ImageButton>
+ 
+ </androidx.constraintlayout.widget.ConstraintLayout>
+\ No newline at end of file
+diff --git a/app/src/main/res/layout/activity_scan.xml b/app/src/main/res/layout/activity_pdf_view.xml
+similarity index 94%
+rename from app/src/main/res/layout/activity_scan.xml
+rename to app/src/main/res/layout/activity_pdf_view.xml
+index 1c4ffde..02564ea 100644
+--- a/app/src/main/res/layout/activity_scan.xml
++++ b/app/src/main/res/layout/activity_pdf_view.xml
+@@ -5,7 +5,7 @@
+     android:layout_width="match_parent"
+     android:layout_height="match_parent"
+     android:orientation="vertical"
+-    tools:context="com.example.pdfScanner.ScanActivity">
++    tools:context="com.example.pdfScanner.PdfViewActivity">
+     <ImageView
+         android:id="@+id/pdf_view"
+         android:layout_width="match_parent"
+-- 
+2.21.0.windows.1
+

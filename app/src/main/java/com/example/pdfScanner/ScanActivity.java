@@ -2,6 +2,9 @@ package com.example.pdfScanner;
 import androidx.appcompat.app.AppCompatActivity;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -11,6 +14,8 @@ import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.ml.vision.FirebaseVision;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
@@ -19,7 +24,7 @@ import com.google.firebase.ml.vision.text.FirebaseVisionTextDetector;
 import java.io.FileInputStream;
 import java.util.List;
 
-public class ScanActivity extends AppCompatActivity {
+public class ScanActivity extends AppCompatActivity implements View.OnClickListener {
 
     String currentFilePath;
     Bitmap currentBitmapImage;
@@ -41,12 +46,7 @@ public class ScanActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         imageView.setImageBitmap(currentBitmapImage);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                runTextRecognition(currentBitmapImage);
-            }
-        });
+        button.setOnClickListener(this);
     }
 
     private void runTextRecognition(Bitmap mSelectedImage) {
@@ -83,5 +83,22 @@ public class ScanActivity extends AppCompatActivity {
             sb.append("\n");
         }
         resultView.setText(sb.toString());
+        String finalResult;
+        finalResult = sb.toString();
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("coppiedText", finalResult);
+        clipboard.setPrimaryClip(clip);
+        Toast.makeText(this, "Coppied to clipboard", Toast.LENGTH_LONG).show();
+
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.ocrBtn:
+            {
+                runTextRecognition(currentBitmapImage);
+            }
+        }
     }
 }

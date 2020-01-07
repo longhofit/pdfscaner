@@ -30,6 +30,7 @@ public class LoginActivity extends AppCompatActivity {
         if(Build.VERSION.SDK_INT>= Build.VERSION_CODES.M){
             getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
         }
+        getSupportActionBar().hide();
         setContentView(R.layout.activity_login);
         textInputEmail=findViewById(R.id.textInputEmail);
         textInputPass=findViewById(R.id.textInputPassword);

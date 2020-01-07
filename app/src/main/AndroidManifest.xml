@@ -10,7 +10,10 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
+
     <application
+        android:hardwareAccelerated="false"
+        android:largeHeap="true"
         android:name=".Builder_Api_Retrofit"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -23,6 +26,10 @@
         <activity android:name=".PdfViewActivity" />
         <activity android:name=".MainActivity" />
         <activity android:name=".RegisterActivity" />
+        <activity android:name=".ScanActivity"/>
+        <activity
+            android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
+            android:theme="@style/Base.Theme.AppCompat" />
         <activity android:name=".LoadingActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

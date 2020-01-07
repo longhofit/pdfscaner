@@ -6,6 +6,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.ListFragment;
+import androidx.viewpager.widget.ViewPager;
 
 import android.Manifest;
 import android.content.Context;
@@ -18,11 +19,15 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.google.android.material.tabs.TabLayout;
 import com.itextpdf.text.BadElementException;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
@@ -39,6 +44,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -55,6 +62,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public Uri currentUri = null;
 
 
+    private TabLayout tabLayout;
+    private ViewPager viewPager;
 
     private static final int REQUEST_ID_IMAGE_CAPTURE = 100;
     private static final int RESULT_LOAD_IMG = 101;
@@ -63,9 +72,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getSupportActionBar().hide();
 
         //Ask for permission
         makeRequest();
+
+        tabLayout = findViewById(R.id.tablayout_tourdetail_tab);
+        viewPager = findViewById(R.id.viewpaper_tourdetail_mainview);
+
+
+        ViewPageAdapter adapter = new ViewPageAdapter(getSupportFragmentManager());
+
+        ListImageFagment listImageFagment = new ListImageFagment();
+        ListPdfFagment listPdfFagment = new ListPdfFagment();
+
+        adapter.AddFragment(listImageFagment, "Images");
+        adapter.AddFragment(listPdfFagment, "Documents");
+        viewPager.setAdapter(adapter);
+        tabLayout.setupWithViewPager(viewPager);
+        //Get list of archived files
+        // File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+
+//        String path = getExternalFilesDir(Environment.DIRECTORY_PICTURES).toString();
+//        Log.d("Files", "Path: " + path);
+
 
        /* //List fragment
         Fragment fragmentfirst = new FragmentPicturesItem();
@@ -77,8 +107,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //Button get photo from gallery
         btnGallery = findViewById(R.id.btnGallery);
         btnGallery.setOnClickListener(this);
-
-
 
 
     }

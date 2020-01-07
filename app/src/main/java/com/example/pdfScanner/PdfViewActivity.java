@@ -30,6 +30,7 @@ public class PdfViewActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdf_view);
+        getSupportActionBar().hide();
         ImageView imageView = findViewById(R.id.pdf_view);
         Button button = findViewById(R.id.ocrBtn);
         Intent intent = getIntent();

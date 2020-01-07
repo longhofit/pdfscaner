@@ -1,11 +1,15 @@
 package com.example.pdfScanner;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import androidx.annotation.NonNull;
@@ -35,6 +39,23 @@ public class ListPdfFagment extends Fragment {
         }
         final ListView listPdfFiles = view.findViewById(R.id.list_files_pdf);
         adapterListPdfFiles = new ListViewAdapterListPdfFiles(getActivity(), files);
+
+        listPdfFiles.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Uri path = Uri.fromFile(files.get(position));
+                Intent imgOpenintent = new Intent(Intent.ACTION_VIEW);
+                imgOpenintent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                imgOpenintent.setDataAndType(path, "application/pdf");
+                try {
+                    getContext().startActivity(imgOpenintent);
+                }
+                catch (ActivityNotFoundException e) {
+                    Log.d("Exception", "ActivityNotFoundException");
+                }
+            }
+        });
+
         listPdfFiles.setAdapter(adapterListPdfFiles);
 
 

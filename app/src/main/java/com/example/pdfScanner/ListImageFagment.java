@@ -1,11 +1,15 @@
 package com.example.pdfScanner;
 
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import androidx.annotation.NonNull;
@@ -37,8 +41,26 @@ public class ListImageFagment extends Fragment {
 
         final ListView listImageFiles = view.findViewById(R.id.list_files);
         adapterListImageFiles = new ListViewAdapterListImageFiles(getActivity(), files);
+
         listImageFiles.setAdapter(adapterListImageFiles);
 
+        listImageFiles.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Uri path = Uri.fromFile(files.get(position));
+                Intent imgOpenintent = new Intent(Intent.ACTION_VIEW);
+                imgOpenintent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                imgOpenintent.setDataAndType(path, "image/jpeg");
+                Log.d("OUUUUUT", "OUTTTTTT");
+                try {
+                    Log.d("AAAA", "AAAAAAAA");
+                    getActivity().startActivity(imgOpenintent);
+                }
+                catch (ActivityNotFoundException e) {
+
+                }
+            }
+        });
 
         return view;
 

@@ -10,6 +10,7 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -32,7 +33,7 @@ public class PdfViewActivity extends AppCompatActivity {
         setContentView(R.layout.activity_pdf_view);
         getSupportActionBar().hide();
         ImageView imageView = findViewById(R.id.pdf_view);
-        Button button = findViewById(R.id.ocrBtn);
+        ImageButton button = findViewById(R.id.ocrBtn);
         Intent intent = getIntent();
         currentFilePath = intent.getStringExtra("filePath");
         String filename = getIntent().getStringExtra("bitMap");
